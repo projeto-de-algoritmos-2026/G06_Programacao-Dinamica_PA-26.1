@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wordle · Sequence Alignment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="public/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div>
+      <div class="logo-title">Wordle · DP</div>
+      <div class="logo-subtitle">Sequence Alignment</div>
+    </div>
+  </div>
+  <span class="header-badge">Projeto Algoritmos · PD</span>
+</header>
+
+<main>
+
+  <!-- ── Coluna esquerda: jogo ─────────────────────────────────────────────── -->
+  <div class="game-col">
+
+    <!-- Dica de comprimento: atualizada a cada tentativa -->
+    <div id="length-hint">Tente adivinhar o tamanho da palavra!</div>
+
+    <!-- Tabuleiro de tentativas (linhas dinâmicas) -->
+    <div id="board"></div>
+
+    <!-- Input sem maxlength fixo — o jogador descobre o tamanho pelo jogo -->
+    <div class="input-area">
+      <input id="guess-input" type="text"
+             placeholder="Digite sua tentativa..."
+             autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button id="submit-btn">Enviar</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div id="keyboard"></div>
+
+    <button id="reset-btn">↺ Nova palavra</button>
+  </div>
+
+  <!-- ── Coluna direita: visualização do algoritmo ─────────────────────────── -->
+  <div class="dp-col">
+
+    <div id="dp-stats"></div>
+
+    <div class="dp-panel">
+      <div class="dp-panel-title">Matriz DP · dp[i][j]</div>
+      <div id="dp-matrix-container"></div>
+    </div>
+
+    <div class="dp-panel" id="dp-section">
+      <div class="dp-panel-title">Alinhamento · Traceback</div>
+      <div id="dp-alignment-container"></div>
+    </div>
+
+  </div>
+</main>
+
+<script src="src/alignment.js"></script>
+<script src="src/game.js"></script>
+<script src="src/ui.js"></script>
+
+<script>
+
+let gameState = createGame();
+
+// ── Inicialização ─────────────────────────────────────────────────────────────
+function init() {
+  gameState = createGame();
+
+  initBoard(MAX_ATTEMPTS);
+  initKeyboard(handleKey);
+  showDPPlaceholder();
+  clearMessage();
+  updateLengthHint([]);
+
+  DOM.input.value = "";
+  DOM.input.disabled = false;
+  DOM.submitBtn.disabled = false;
+  DOM.input.focus();
+}
+
+// ── Input: atualiza a linha corrente em tempo real ────────────────────────────
+DOM.input.addEventListener("input", (e) => {
+  const val = e.target.value.replace(/[^a-zA-ZáàãâéêíóôõúçÁÀÃÂÉÊÍÓÔÕÚÇ]/g, "");
+  DOM.input.value = val.toUpperCase();
+  gameState.currentInput = val.toLowerCase();
+  updateCurrentRowDisplay(gameState.attempts.length, val);
+});
+
+DOM.input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleSubmit();
+});
+
+DOM.submitBtn.addEventListener("click", handleSubmit);
+DOM.resetBtn.addEventListener("click", init);
+
+// ── Teclado virtual ───────────────────────────────────────────────────────────
+function handleKey(key) {
+  if (gameState.status !== "playing") return;
+
+  if (key === "ENTER") { handleSubmit(); return; }
+
+  if (key === "⌫") {
+    DOM.input.value = DOM.input.value.slice(0, -1);
+    DOM.input.dispatchEvent(new Event("input"));
+    return;
+  }
+
+  DOM.input.value += key.toUpperCase();
+  DOM.input.dispatchEvent(new Event("input"));
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+function handleSubmit() {
+  if (gameState.status !== "playing") return;
+
+  const guess = DOM.input.value.toLowerCase().trim();
+  const rowIdx = gameState.attempts.length;
+
+  const { state: newState, error } = submitGuess(gameState, guess, getLetterFeedback);
+
+  if (error) {
+    showMessage(error, "error");
+    shakeRow(rowIdx);
+    return;
+  }
+
+  clearMessage();
+  gameState = newState;
+
+  const attempt = gameState.attempts[gameState.attempts.length - 1];
+  const guessLen = attempt.guess.length;
+  const revealDuration = guessLen * 110 + 300;
+
+  // Revela os tiles com animação
+  revealRow(rowIdx, attempt.feedback);
+
+  // Atualiza teclado e dica após a animação
+  setTimeout(() => {
+    updateKeyboard(getKeyboardState(gameState.attempts));
+    updateLengthHint(gameState.attempts);
+  }, revealDuration);
+
+  // Atualiza o painel DP
+  setTimeout(() => {
+    renderDPMatrix(attempt.alignment);
+    renderAlignment(attempt.alignment);
+  }, 200);
+
+  DOM.input.value = "";
+  gameState.currentInput = "";
+
+  // Verifica fim de jogo
+  setTimeout(() => {
+    if (gameState.status === "won") {
+      showMessage(getEndMessage(gameState), "win");
+      DOM.input.disabled = true;
+      DOM.submitBtn.disabled = true;
+    } else if (gameState.status === "lost") {
+      showMessage(getEndMessage(gameState), "lose");
+      DOM.input.disabled = true;
+      DOM.submitBtn.disabled = true;
+    } else {
+      DOM.input.focus();
+    }
+  }, revealDuration + 50);
+}
+
+// ── Kick off ──────────────────────────────────────────────────────────────────
+init();
+</script>
+
+</body>
+</html>
