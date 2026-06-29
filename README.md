@@ -88,3 +88,10 @@ Se o seu sistema usar `python` no lugar de `python3`, o script já tenta esse fa
 - **Sobreposição de subproblemas:** sem memoização, as mesmas comparações seriam refeitas exponencialmente; a matriz DP garante que cada célula é calculada exatamente uma vez.
 - **Recorrência:** `dp[i][j] = min(dp[i-1][j-1] + custo, dp[i-1][j] + 1, dp[i][j-1] + 1)`, com complexidade **O(m × n)** em tempo e espaço.
 - **Traceback:** após preencher a matriz, o caminho ótimo é reconstruído de `dp[m][n]` até `dp[0][0]`, revelando a sequência de operações (match, mismatch, gap) que produz o alinhamento mínimo.
+
+## Vídeo
+
+[![embed vídeo](https://img.youtube.com/vi/KqnyI86GT-8/0.jpg)](https://www.youtube.com/watch?v=KqnyI86GT-8)
+
+
+[https://www.youtube.com/watch?v=KqnyI86GT-8](https://www.youtube.com/watch?v=KqnyI86GT-8)
